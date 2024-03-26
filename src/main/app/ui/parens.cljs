@@ -9,6 +9,8 @@
                {:ui/keys [highlighted-count highlighted-color]}
                {:keys [onClick]}]
   {:query [:ui/highlighted-count :ui/highlighted-color]}
+  ;; I'm gonna want to add an ident for each canto's parens sub-component
+  ;; so like {:ident [:parens/id :params/id]}
   (let [button-text (fn [count chr] (apply str (repeat count chr)))
         button-attrs {:style {:color highlighted-color} 
                       :onClick onClick}]
