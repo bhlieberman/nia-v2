@@ -2,17 +2,13 @@
   (:require
    [app.model.session :as session]
    [app.ui.canto :refer [Canto]]
-   [app.ui.parens :refer [Parens]]
-   [clojure.string :as str]
    [com.fulcrologic.fulcro.dom :as dom :refer [div ul li p h3 button b]]
    [com.fulcrologic.fulcro.dom.html-entities :as ent]
    [com.fulcrologic.fulcro.dom.events :as evt]
-   [com.fulcrologic.fulcro.application :as app]
    [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
    [com.fulcrologic.fulcro.routing.dynamic-routing :as dr]
    [com.fulcrologic.fulcro.ui-state-machines :as uism :refer [defstatemachine]]
-   [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]]
-   [com.fulcrologic.fulcro.algorithms.merge :as merge]
+   [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]] 
    [com.fulcrologic.fulcro-css.css :as css]
    [com.fulcrologic.fulcro.algorithms.form-state :as fs]
    [taoensso.timbre :as log]))
@@ -177,8 +173,7 @@
 
 (defsc TopChrome [this {:root/keys [router current-session login]}]
   {:query         [{:root/router (comp/get-query TopRouter)}
-                   {:root/current-session (comp/get-query Session)}
-                   {:root/parens (comp/get-query Parens)}
+                   {:root/current-session (comp/get-query Session)} 
                    {:root/canto (comp/get-query Canto)}
                    [::uism/asm-id ::TopRouter]
                    {:root/login (comp/get-query Login)}]
@@ -187,8 +182,8 @@
                     {:root/router          {}
                      :root/login           {}
                      :root/current-session {}
-                     :root/canto {:ui/highlighted-count 1 
-                                  :ui/highlighted-color :blue}})}
+                     :root/canto {:parens/highlighted-count 1 
+                                  :parens/highlighted-color :blue}})}
   (let [current-tab (some-> (dr/current-route this this) first keyword)]
     (div :.ui.container
          (div :.ui.secondary.pointing.menu

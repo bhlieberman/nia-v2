@@ -1,20 +1,21 @@
 (ns app.client
   (:require
-    [app.application :refer [SPA]]
-    [app.ui.root :as root]
-    [com.fulcrologic.fulcro.application :as app]
-    [app.ui.root :as root]
-    [com.fulcrologic.fulcro.networking.http-remote :as net]
-    [com.fulcrologic.fulcro.data-fetch :as df]
-    [com.fulcrologic.fulcro.ui-state-machines :as uism]
-    [com.fulcrologic.fulcro.components :as comp]
-    [com.fulcrologic.fulcro-css.css-injection :as cssi]
-    [app.model.session :as session]
-    [taoensso.timbre :as log]
-    [com.fulcrologic.fulcro.algorithms.denormalize :as fdn]
-    [com.fulcrologic.fulcro.algorithms.merge :as merge]
-    [com.fulcrologic.fulcro.routing.dynamic-routing :as dr]
-    [com.fulcrologic.fulcro.inspect.inspect-client :as inspect]))
+   [app.application :refer [SPA]]
+   [app.ui.root :as root]
+   [app.ui.parens :as p]
+   [app.ui.canto :as c]
+   [com.fulcrologic.fulcro.application :as app]
+   [com.fulcrologic.fulcro.networking.http-remote :as net]
+   [com.fulcrologic.fulcro.data-fetch :as df]
+   [com.fulcrologic.fulcro.ui-state-machines :as uism]
+   [com.fulcrologic.fulcro.components :as comp]
+   [com.fulcrologic.fulcro-css.css-injection :as cssi]
+   [app.model.session :as session]
+   [taoensso.timbre :as log]
+   [com.fulcrologic.fulcro.algorithms.denormalize :as fdn]
+   [com.fulcrologic.fulcro.algorithms.merge :as merge]
+   [com.fulcrologic.fulcro.routing.dynamic-routing :as dr]
+   [com.fulcrologic.fulcro.inspect.inspect-client :as inspect]))
 
 (defn ^:export refresh []
   (log/info "Hot code Remount")
@@ -29,8 +30,8 @@
   (dr/initialize! SPA)
   (log/info "Starting session machine.")
   (uism/begin! SPA session/session-machine ::session/session
-    {:actor/login-form      root/Login
-     :actor/current-session root/Session})
+               {:actor/login-form      root/Login
+                :actor/current-session root/Session})
   (app/mount! SPA root/Root "app" {:initialize-state? false}))
 
 (comment
@@ -38,8 +39,8 @@
   (app/mounted? SPA)
   (app/set-root! SPA root/Root {:initialize-state? true})
   (uism/begin! SPA session/session-machine ::session/session
-    {:actor/login-form      root/Login
-     :actor/current-session root/Session})
+               {:actor/login-form      root/Login
+                :actor/current-session root/Session})
 
   (reset! (::app/state-atom SPA) {})
 
@@ -60,6 +61,5 @@
   (-> SPA ::app/runtime-atom deref ::app/indexes)
   (comp/class->any SPA root/Root)
   (let [s (app/current-state SPA)]
-    (fdn/db->tree [{[:component/id :login] [:ui/open? :ui/error :account/email
-                                            {[:root/current-session '_] (comp/get-query root/Session)}
-                                            [::uism/asm-id ::session/session]]}] {} s)))
+    ;; returns the passed in initial state?
+    (fdn/db->tree (comp/get-query c/Canto) [:component/id :canto] s)))

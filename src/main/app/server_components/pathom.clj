@@ -1,15 +1,14 @@
 (ns app.server-components.pathom
   (:require
-    [mount.core :refer [defstate]]
-    [taoensso.timbre :as log]
-    [com.wsscode.pathom.connect :as pc]
-    [com.wsscode.pathom.core :as p]
-    [com.wsscode.common.async-clj :refer [let-chan]]
-    [clojure.core.async :as async]
-    [app.model.account :as acct]
-    [app.model.session :as session]
-    [app.server-components.config :refer [config]]
-    [app.model.mock-database :as db]))
+   [mount.core :refer [defstate]]
+   [taoensso.timbre :as log]
+   [com.wsscode.pathom.connect :as pc]
+   [com.wsscode.pathom.core :as p]
+   [com.wsscode.common.async-clj :refer [let-chan]]
+   [clojure.core.async :as async] 
+   [app.model.session :as session]
+   [app.server-components.config :refer [config]]
+   [app.model.mock-database :as db]))
 
 (pc/defresolver index-explorer [env _]
   {::pc/input  #{:com.wsscode.pathom.viz.index-explorer/id}
@@ -19,7 +18,7 @@
      (update ::pc/index-resolvers #(into {} (map (fn [[k v]] [k (dissoc v ::pc/resolve)])) %))
      (update ::pc/index-mutations #(into {} (map (fn [[k v]] [k (dissoc v ::pc/mutate)])) %)))})
 
-(def all-resolvers [acct/resolvers session/resolvers index-explorer])
+(def all-resolvers [session/resolvers index-explorer])
 
 (defn preprocess-parser-plugin
   "Helper to create a plugin that can view/modify the env/tx of a top-level request.

@@ -12,8 +12,9 @@
    3 - green
    4 - purple
    5 - orange"
-  [_]
+  [{:keys [f]}]
   (action
    [{:keys [state]}]
-   (let [path [:component/id :parens :ui/highlighted-count]]
-     (swap! state update-in path inc))))
+   ;; ok so this is updating in parens path, not the canto...
+   (let [path [:component/id :canto :parens/highlighted-count]]
+     (swap! state update-in path f))))
