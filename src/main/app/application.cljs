@@ -1,5 +1,6 @@
 (ns app.application
   (:require
+   [com.fulcrologic.fulcro.react.version18 :refer [with-react18]]
     [com.fulcrologic.fulcro.networking.http-remote :as net]
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as comp]
@@ -19,13 +20,14 @@
     (-> ast :type #{:root})
     (update :children conj (eql/expr->ast :com.wsscode.pathom.core/errors))))
 
-(defonce SPA (app/fulcro-app
+(defonce SPA (with-react18
+               (app/fulcro-app
                {;; This ensures your client can talk to a CSRF-protected server.
                 ;; See middleware.clj to see how the token is embedded into the HTML
                 :remotes {:remote (net/fulcro-http-remote
-                                    {:url                "/api"
-                                     :request-middleware secured-request-middleware})}
-                :global-eql-transform global-eql-transform}))
+                                   {:url                "/api"
+                                    :request-middleware secured-request-middleware})}
+                :global-eql-transform global-eql-transform})))
 
 (comment
   (-> SPA (::app/runtime-atom) deref ::app/indexes))

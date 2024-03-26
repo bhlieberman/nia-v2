@@ -4,6 +4,8 @@
 *.sw?
 *.swp
 *jar
+.clj-kondo
+.portal
 .DS_Store
 .cljs_rhino_repl
 .idea
