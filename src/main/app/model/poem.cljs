@@ -15,6 +15,10 @@
   [{:keys [f]}]
   (action
    [{:keys [state]}]
-   ;; ok so this is updating in parens path, not the canto...
-   (let [path [:component/id :canto :parens/highlighted-count]]
-     (swap! state update-in path f))))
+   (let [count [:component/id :canto :parens/highlighted-count]
+         ;; TODO: make this so swaps don't occur when current value is not 0 <= curr < 5
+         new-db (swap! state update-in count f)
+         color [:component/id :canto :parens/highlighted-color]
+         new-count (get-in new-db [:component/id :canto :parens/highlighted-count])
+         new-color (nth [:red :blue :yellow :green :purple :orange] new-count)]
+     (swap! state assoc-in color new-color))))
