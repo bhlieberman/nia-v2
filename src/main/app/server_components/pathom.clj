@@ -3,10 +3,10 @@
    [mount.core :refer [defstate]]
    [taoensso.timbre :as log]
    [com.wsscode.pathom.connect :as pc]
-   [com.wsscode.pathom.core :as p]
-   [com.wsscode.common.async-clj :refer [let-chan]]
+   [com.wsscode.pathom.core :as p] 
    [clojure.core.async :as async] 
    [app.model.session :as session]
+   [app.model.server-components :as sc]
    [app.server-components.config :refer [config]]
    [app.model.mock-database :as db]))
 
@@ -18,7 +18,7 @@
      (update ::pc/index-resolvers #(into {} (map (fn [[k v]] [k (dissoc v ::pc/resolve)])) %))
      (update ::pc/index-mutations #(into {} (map (fn [[k v]] [k (dissoc v ::pc/mutate)])) %)))})
 
-(def all-resolvers [session/resolvers index-explorer])
+(def all-resolvers [session/resolvers sc/get-server-resource index-explorer])
 
 (defn preprocess-parser-plugin
   "Helper to create a plugin that can view/modify the env/tx of a top-level request.

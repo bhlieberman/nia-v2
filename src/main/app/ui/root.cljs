@@ -2,13 +2,14 @@
   (:require
    [app.model.session :as session]
    [app.ui.canto :refer [Canto]]
+   [app.ui.nia.core]
    [com.fulcrologic.fulcro.dom :as dom :refer [div ul li p h3 button b]]
    [com.fulcrologic.fulcro.dom.html-entities :as ent]
    [com.fulcrologic.fulcro.dom.events :as evt]
    [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
    [com.fulcrologic.fulcro.routing.dynamic-routing :as dr]
    [com.fulcrologic.fulcro.ui-state-machines :as uism :refer [defstatemachine]]
-   [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]] 
+   [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]]
    [com.fulcrologic.fulcro-css.css :as css]
    [com.fulcrologic.fulcro.algorithms.form-state :as fs]
    [taoensso.timbre :as log]))
@@ -173,7 +174,7 @@
 
 (defsc TopChrome [this {:root/keys [router current-session login]}]
   {:query         [{:root/router (comp/get-query TopRouter)}
-                   {:root/current-session (comp/get-query Session)} 
+                   {:root/current-session (comp/get-query Session)}
                    {:root/canto (comp/get-query Canto)}
                    [::uism/asm-id ::TopRouter]
                    {:root/login (comp/get-query Login)}]
@@ -182,7 +183,7 @@
                     {:root/router          {}
                      :root/login           {}
                      :root/current-session {}
-                     :root/canto {:parens/highlighted-count 1 
+                     :root/canto {:parens/highlighted-count 1
                                   :parens/highlighted-color :blue}})}
   (let [current-tab (some-> (dr/current-route this this) first keyword)]
     (div :.ui.container
@@ -190,7 +191,7 @@
               (dom/a :.item {:classes [(when (= :main current-tab) "active")]
                              :onClick (fn [] (dr/change-route this ["main"]))} "Main")
               (dom/a :.item {:classes [(when (= :settings current-tab) "active")]
-                             :onClick (fn [] (dr/change-route this ["settings"]))} "Settings") 
+                             :onClick (fn [] (dr/change-route this ["settings"]))} "Settings")
               (dom/a :.item {:classes [(when (= :poem current-tab) "active")]
                              :onClick (fn [] (dr/change-route this ["poem"]))} "Poem")
               (div :.right.menu
