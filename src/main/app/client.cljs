@@ -2,13 +2,12 @@
   (:require
    [app.application :refer [SPA]]
    [app.ui.root :as root]
+   [app.ui.nia.core :as nia]
    [com.fulcrologic.fulcro.application :as app]
    ;; TODO: load the poem text!
-   [com.fulcrologic.fulcro.data-fetch :as df]
-   [com.fulcrologic.fulcro.ui-state-machines :as uism]
+   [com.fulcrologic.fulcro.data-fetch :as df] 
    [com.fulcrologic.fulcro.components :as comp]
-   [com.fulcrologic.fulcro-css.css-injection :as cssi]
-   [app.model.session :as session]
+   [com.fulcrologic.fulcro-css.css-injection :as cssi] 
    [taoensso.timbre :as log]
    [com.fulcrologic.fulcro.algorithms.merge :as merge]
    [com.fulcrologic.fulcro.routing.dynamic-routing :as dr]
@@ -25,16 +24,15 @@
   ;(inspect/app-started! SPA)
   (app/set-root! SPA root/Root {:initialize-state? true})
   (dr/initialize! SPA)
-  (log/info "Starting session machine.")
-  (uism/begin! SPA session/session-machine ::session/session
-               {:actor/login-form      root/Login
-                :actor/current-session root/Session})
+  (log/info "Starting session machine.") 
   (app/mount! SPA root/Root "app" {:initialize-state? false}))
 
 (comment
   ;; TODO: learn what each of these does
   (inspect/app-started! SPA)
-  
+  ;; ok this finds the right thing but there's still a :not-found
+  ;; error in the map...
+  (df/load! SPA [:footnote/idx 1] nia/Footnote)
   (app/mounted? SPA)
   
   (app/set-root! SPA root/Root {:initialize-state? true})
