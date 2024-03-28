@@ -1,16 +1,16 @@
 (ns app.server-components.middleware
   (:require
-    [app.server-components.config :refer [config]]
-    [app.server-components.pathom :refer [parser]]
-    [mount.core :refer [defstate]]
-    [com.fulcrologic.fulcro.server.api-middleware :refer [handle-api-request
-                                                          wrap-transit-params
-                                                          wrap-transit-response]]
-    [ring.middleware.defaults :refer [wrap-defaults]]
-    [ring.util.response :refer [response file-response resource-response]]
-    [ring.util.response :as resp]
-    [hiccup.page :refer [html5]]
-    [taoensso.timbre :as log]))
+   [app.server-components.config :refer [config]]
+   [app.server-components.pathom :refer [parser]]
+   [mount.core :refer [defstate]]
+   [com.fulcrologic.fulcro.server.api-middleware :refer [handle-api-request
+                                                         wrap-transit-params
+                                                         wrap-transit-response]]
+   [ring.middleware.defaults :refer [wrap-defaults]]
+   [ring.util.response :as resp :refer [response file-response resource-response]]
+   
+   [hiccup.page :refer [html5]]
+   [taoensso.timbre :as log]))
 
 (def ^:private not-found-handler
   (fn [req]

@@ -4,7 +4,7 @@
             [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
             [goog.object :as gobj]))
 
-(defsc Canto [this {:poem/keys [canto]
+(defsc CantoTest [this {:poem/keys [canto]
                     :parens/keys [highlighted-count highlighted-color]}]
   {:query [:poem/canto :parens/highlighted-count :parens/highlighted-color]
    :ident (fn [] [:component/id :canto])
