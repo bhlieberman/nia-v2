@@ -1,139 +1,91 @@
 (ns app.ui.nia.core
-  (:require [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
-            [com.fulcrologic.fulcro.algorithms.denormalize :as fdn]
-            [com.fulcrologic.fulcro.algorithms.normalize :as nc]
+  (:require [clojure.string :as str]
+            [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
             [com.fulcrologic.fulcro.dom :as dom]))
 
-(def nia-data
-  {:root/poem
-   [{:canto/i
-     {:canto/thesis
-      {:thesis/body ""
-       :canto/parentheses
-       [{:parens/level 1 :parens/text ""}
-        {:parens/level 2 :parens/text ""}
-        {:parens/level 3 :parens/text ""}
-        {:parens/level 4
-         :parens/text ""
-         :parens/footnotes
-         [{:footnote/idx 1 :footnote/text ""}
-          {:footnote/idx 2 :footnote/text ""}]}
-        {:parens/level 5 :parens/text ""}]}}}
-    {:canto/ii
-     {:canto/thesis
-      {:thesis/body ""
-       :canto/parentheses
-       [{:parens/level 1 :parens/text ""}
-        {:parens/level 2
-         :parens/text ""
-         :parens/footnotes
-         [{:footnote/idx 1 :footnote/text ""}]}
-        {:parens/level 3
-         :parens/text ""
-         :parens/footnotes
-         [{:footnote/idx 1 :footnote/text ""}]}
-        {:parens/level 4 :parens/text ""}
-        {:parens/level 5 :parens/text ""}]}}}
-    {:canto/iii
-     {:canto/thesis
-      {:thesis/body ""
-       :canto/parentheses []}}}
-    {:canto/iv
-     {:canto/thesis
-      {:thesis/body ""
-       :canto/parentheses
-       [{:parens/level 1 :parens/text ""}
-        {:parens/level 2 :parens/text ""}
-        {:parens/level 3 :parens/text ""}
-        {:parens/level 4
-         :parens/text ""
-         :parens/footnotes
-         [{:footnote/idx 1 :footnote/text ""}
-          {:footnote/idx 2 :footnote/text ""}
-          {:footnote/idx 3 :footnote/text ""}
-          {:footnote/idx 4 :footnote/text ""}
-          {:footnote/idx 5 :footnote/text ""}]}
-        {:parens/level 5 :parens/text ""}]}}}]})
-
-(defsc Footnote [_this {:footnote/keys [idx] :as _props}]
+(defsc Footnote [_this {:footnote/keys [idx text] :as _props}]
   {:query [:footnote/idx :footnote/text]
-   :ident :footnote/idx}
+   :ident :footnote/idx
+   :initial-state (fn [{:keys [idx text]}] {:footnote/idx idx :footnote/text text})}
   (dom/div
    {}
-   (dom/h1 "This is footnote number: " idx)))
+   (dom/div
+    (dom/h1 "This is footnote number: " idx)
+    (dom/section
+     (map dom/p (str/split-lines text))))))
 
 (def ui-footnote (comp/factory Footnote {:keyfn :footnote/idx}))
 
-(defsc Parentheses [_this {:parens/keys [level text footnotes] :as _props}]
+(defsc Parentheses [_this {:parens/keys [level text footnotes]}]
   {:query [:parens/level :parens/text {:parens/footnotes (comp/get-query Footnote)}]
    :ident :parens/level
-   :initial-state (fn [_] {:parens/level :param/level
-                           :parens/text :param/text
-                           :parens/footnotes []})}
+   :initial-state (fn [{:keys [level text]}]
+                    {:parens/level level
+                     :parens/text text
+                     :parens/footnotes
+                     [(comp/get-initial-state
+                       Footnote {:idx 4 :text nil})]})}
   (dom/div
+   (dom/h4 "Parens level: " level)
+   (dom/p "Parens text: " text)
    (dom/ol
     (map ui-footnote footnotes))))
-(comp/get-initial-state Parentheses {:level 1})
-(defsc Thesis [_this {:keys [canto/thesis thesis/body canto/parentheses] :as _props}]
-  {:query [:canto/thesis :thesis/body {:canto/parentheses (comp/get-query Parentheses {})}]
-   :ident (fn [] [:component/id :canto/thesis])
-   :initial-state {:canto/parentheses {}}}
+
+(def ui-parens (comp/factory Parentheses))
+
+(defsc Thesis [_this {:thesis/keys [id body parentheses]}]
+  {:query [:thesis/id :thesis/body {:thesis/parentheses (comp/get-query Parentheses)}]
+   :ident :thesis/id ; this will be an ID like c1
+   :initial-state (fn [{:keys [id body]}]
+                    {:thesis/id id
+                     :thesis/body body
+                     :thesis/parentheses
+                     ;; later this will have conditional logic
+                     ;; to determine how many parentheses each
+                     ;; thesis has, but for now: simple is best 
+                     (comp/get-initial-state ;; DON'T PUT THIS IN A VECTOR!!
+                      Parentheses
+                      {:level 1
+                       :text "Hello parenthesis"})})}
   (dom/div
-   (dom/h1 "Canto " thesis)
    (dom/section body)
-   (when parentheses (dom/section parentheses))))
+   (dom/div
+    (dom/section (ui-parens parentheses)))))
 
 (def ui-thesis (comp/factory Thesis {:keyfn :canto/thesis}))
 
-(defsc Canto [_this {:canto/keys [id] :as _props}]
+(defsc Canto [_this {:canto/keys [id thesis]}]
   {:query [:canto/id {:canto/thesis (comp/get-query Thesis)}]
-   :ident :canto/id}
-  (dom/div
-   (ui-thesis {:canto/thesis "A Title"
-               :thesis/body "A poem"})))
+   :ident :canto/id
+   :initial-state (fn [{:keys [id]}]
+                    {:canto/id id
+                     :canto/thesis
+                     (comp/get-initial-state
+                      Thesis
+                      {:id id
+                       :body "thesis body"})})}
+  (dom/div 
+   :.ui.container.segment
+   (dom/h3 "Canto " id)
+   (ui-thesis thesis)))
 
 (def ui-canto (comp/factory Canto))
 
-(defsc NIA [_this _props]
-  {:query [:nia/root {:root/poem (comp/get-query Canto)}]
+(defsc NIA [_this {:keys [canto-i canto-ii canto-iv]}]
+  {:query [{:canto-i (comp/get-query Canto)}
+           {:canto-ii (comp/get-query Canto)}
+           {:canto-iv (comp/get-query Canto)}]
    :ident (fn [] [:component/id :nia/root])
-   :initial-state {}
+   :initial-state (fn [_] {:canto-i (comp/get-initial-state Canto {:id 1})
+                           :canto-ii (comp/get-initial-state Canto {:id 2})
+                           :canto-iv (comp/get-initial-state Canto {:id 4})})
    :route-segment ["nia"]}
   (dom/div
    (dom/h1 "NIA v2")
    (dom/div
-    (ui-canto {:canto/id 1}))))
+    :.ui.container
+    (ui-canto canto-i)
+    (ui-canto canto-ii)
+    (ui-canto canto-iv))))
 
-(comment
-  ;; footnotes
-  (comp/get-query Footnote {:footnote/idx 1 :footnote/text ""})
-  (nc/tree->db Footnote {:footnote/idx 1 :footnote/text ""} true)
-
-  ;; parens
-  (comp/get-query Parentheses)
-  (nc/tree->db Parentheses
-               {:parens/level 2
-                :parens/text "a mackintosh"
-                :parens/footnotes {:footnote/idx 1
-                                   :footnote/text "a raincoat in England"}})
-  (fdn/db->tree (comp/get-query Parentheses)
-                (comp/get-initial-state Parentheses {})
-                {})
-
-  ;; thesis
-  (comp/get-query Thesis)
-  (nc/tree->db Thesis [{:parens/level 2
-                        :parens/text "a mackintosh"
-                        :parens/footnotes {:footnote/idx 1
-                                           :footnote/text "a raincoat in England"}}])
-  ;; canto
-  (comp/get-query Canto)
-  (nc/tree->db Canto {:canto/id 1
-                      :canto/thesis [{:parens/level 2
-                                      :parens/text "a mackintosh"
-                                      :parens/footnotes {:footnote/idx 1
-                                                         :footnote/text "a raincoat in England"}}]})
-
-  ;; poem root
-  (comp/get-query NIA)
-  (nc/tree->db NIA nia-data))
+(def ui-nia (comp/factory NIA))

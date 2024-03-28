@@ -4,7 +4,9 @@
    [com.wsscode.pathom.connect :as pc]))
 
 (def footnote-table (atom {1 {:footnote/idx 1
-                              :footnote/text (slurp (io/resource "public/assets/footnotes/canto_i/four_one.txt"))}}))
+                              :footnote/text (slurp (io/resource "public/assets/footnotes/canto_i/four_one.txt"))}
+                           4 {:footnote/idx 4
+                              :footnote/text (slurp (io/resource "public/assets/footnotes/canto_i/four_two.txt"))}}))
 
 (defn get-parens-from-footnote* 
   "A transducer to return only the lines of a footnote
