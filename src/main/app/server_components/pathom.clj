@@ -1,18 +1,8 @@
 (ns app.server-components.pathom
-  (:require
-   [mount.core :refer [defstate]]
-   [taoensso.timbre :as log]
-   [clojure.java.io :as io]
-   [clojure.string :as str]
-   [com.wsscode.pathom3.connect.indexes :as pci]
-   [com.wsscode.pathom3.connect.operation :as pco]
-   [com.wsscode.pathom3.interface.eql :as p.eql]
-   [com.wsscode.pathom3.connect.built-in.resolvers :as pbir]
-   [com.wsscode.pathom3.connect.built-in.plugins :as pbip]
-   [com.wsscode.pathom3.interface.async.eql :as p.a.eql]
-   [com.wsscode.pathom3.interface.smart-map :as psm]
-   [com.wsscode.pathom3.plugin :as p.plugin]
-   [app.model.mock-database :as db]))
+  (:require [clojure.java.io :as io]
+            [com.wsscode.pathom3.connect.indexes :as pci]
+            [com.wsscode.pathom3.connect.built-in.resolvers :as pbir]
+            [com.wsscode.pathom3.interface.smart-map :as psm]))
 
 (defmulti resource-path :type)
 
@@ -76,7 +66,8 @@
           (get-static-resource opts))}})
    (pbir/attribute-table-resolver
     :canto/contents :canto/id
-    [:canto/thesis])])
+    [:canto/thesis :canto/footnotes])])
 
-(let [sm (psm/smart-map (pci/register registry) {:canto/id 1})]
-  (:canto/thesis sm))
+(comment 
+  (let [sm (psm/smart-map (pci/register registry) {:canto/id 1})]
+   (:canto/footnotes sm)))
