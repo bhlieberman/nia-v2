@@ -1,73 +1,63 @@
 (ns app.server-components.pathom
-  (:require [clojure.java.io :as io]
-            [com.wsscode.pathom3.connect.indexes :as pci]
-            [com.wsscode.pathom3.connect.built-in.resolvers :as pbir]
-            [com.wsscode.pathom3.interface.smart-map :as psm]))
+  (:require
+   [mount.core :refer [defstate]]
+   [taoensso.timbre :as log]
+   [com.wsscode.pathom.connect :as pc]
+   [com.wsscode.pathom.core :as p] 
+   [clojure.core.async :as async]
+   
+   [app.server-components.config :refer [config]]
+   [app.model.mock-database :as db]))
 
-(defmulti resource-path :type)
+(def all-resolvers [])
 
-(defmethod resource-path :footnote [m]
-  (let [{:keys [canto parens file]} m
-        path (str "c" canto "p" parens "-" file ".txt")]
-    (str "public/assets/footnotes/" path)))
+(defn preprocess-parser-plugin
+  "Helper to create a plugin that can view/modify the env/tx of a top-level request.
 
-(defmethod resource-path :canto [m]
-  (str "public/assets/theses/c" (:canto m) ".txt"))
+  f - (fn [{:keys [env tx]}] {:env new-env :tx new-tx})
 
-(defmethod resource-path :parens [m]
-  (let [{:keys [canto parens]} m]
-    (str "public/assets/parens/c" canto "p" parens ".txt")))
+  If the function returns no env or tx, then the parser will not be called (aborts the parse)"
+  [f]
+  {::p/wrap-parser
+   (fn transform-parser-out-plugin-external [parser]
+     (fn transform-parser-out-plugin-internal [env tx]
+       (let [{:keys [env tx] :as req} (f {:env env :tx tx})]
+         (if (and (map? env) (seq tx))
+           (parser env tx)
+           {}))))})
 
-(defn get-static-resource [opts]
-  (slurp (io/resource (resource-path opts))))
+(defn log-requests [{:keys [env tx] :as req}]
+  (log/debug "Pathom transaction:" (pr-str tx))
+  req)
 
-(def registry
-  [(pbir/static-table-resolver
-    `cantos :canto/id
-    {1 {:canto/name "Damietta"}
-     2 {:canto/name "The Battle-field of the Pyramids"}
-     4 {:canto/name "The Gardens of Rosetta Seen from A Dahabiah"}})
-   (pbir/constantly-resolver
-    :canto/contents
-    {1 {:canto/thesis (get-static-resource {:type :canto
-                                            :canto 1})
-        :canto/parens
-        (for [i (range 1 6)
-              :let [opts {:type :parens
-                          :canto 1
-                          :parens i}]]
-          (get-static-resource opts))
-        :canto/footnotes
-        [(get-static-resource {:type :footnote
-                               :canto 1
-                               :parens 4
-                               :file "4-1"})
-         (get-static-resource {:type :footnote
-                               :canto 1
-                               :parens 4
-                               :file "4-2"})]}
-     2 {:canto/thesis (get-static-resource {:type :canto
-                                            :canto 2})
-        :canto/parens [] :canto/footnotes
-        (for [m [{:parens 2} {:parens 3}]]
-          (-> m
-              (merge {:canto 2
-                      :type :footnote
-                      :file 1})
-              get-static-resource))}
-     4 {:canto/thesis ""
-        :canto/parens []
-        :canto/footnotes
-        (for [i (range 1 6)
-              :let [opts {:file i
-                          :canto 4
-                          :parens 4
-                          :type :footnote}]]
-          (get-static-resource opts))}})
-   (pbir/attribute-table-resolver
-    :canto/contents :canto/id
-    [:canto/thesis :canto/footnotes])])
+(defn build-parser [db-connection]
+  (let [real-parser (p/parallel-parser
+                      {::p/mutate  pc/mutate-async
+                       ::p/env     {::p/reader               [p/map-reader pc/parallel-reader
+                                                              pc/open-ident-reader p/env-placeholder-reader]
+                                    ::p/placeholder-prefixes #{">"}
+                                    ::pc/mutation-join-globals [:tempids]}
+                       ::p/plugins [(pc/connect-plugin {::pc/register all-resolvers})
+                                    (p/env-wrap-plugin (fn [env]
+                                                         ;; Here is where you can dynamically add things to the resolver/mutation
+                                                         ;; environment, like the server config, database connections, etc.
+                                                         (assoc env
+                                                           :db @db-connection ; real datomic would use (d/db db-connection)
+                                                           :connection db-connection
+                                                           :config config)))
+                                    (preprocess-parser-plugin log-requests)
+                                    p/error-handler-plugin
+                                    p/request-cache-plugin
+                                    (p/post-process-parser-plugin p/elide-not-found)
+                                    p/trace-plugin]})
+        ;; NOTE: Add -Dtrace to the server JVM to enable Fulcro Inspect query performance traces to the network tab.
+        ;; Understand that this makes the network responses much larger and should not be used in production.
+        trace?      (not (nil? (System/getProperty "trace")))]
+    (fn wrapped-parser [env tx]
+      (async/<!! (real-parser env (if trace?
+                                    (conj tx :com.wsscode.pathom/trace)
+                                    tx))))))
 
-(comment 
-  (let [sm (psm/smart-map (pci/register registry) {:canto/id 1})]
-   (:canto/footnotes sm)))
+(defstate parser
+  :start (build-parser db/conn))
+
