@@ -1,5 +1,6 @@
 (ns app.server-components.poem
-  (:require [clojure.java.io :as io]))
+  (:require [clojure.java.io :as io]
+            [com.wsscode.pathom.connect :as pc]))
 
 (defmulti resource-path :type)
 
@@ -53,3 +54,25 @@
                                      :parens 4
                                      :type :footnote}]]
                      (get-static-resource opts))}})
+
+(def poem-resolver (pc/constantly-resolver
+                    :canto/contents
+                    poem-data))
+
+(pc/defresolver thesis-resolver [_ {:canto/keys [id]}]
+  {:canto/thesis (get-in poem-data [id :canto/thesis])})
+
+(pc/defresolver parens-resolver [_ {:canto/keys [id]}]
+  {:canto/parens (get-in poem-data [id :canto/parens])})
+
+(pc/defresolver footnotes-resolver [_ {:canto/keys [id]}]
+  {:canto/footnotes (get-in poem-data [id :canto/footnotes])})
+
+(pc/defresolver get-footnote-at-idx [_ {:footnote/keys [idx]
+                                        :canto/keys [id]
+                                        :parens/keys [level]}]
+  {::pc/output [:footnote/idx :footnote/text :canto/id]}
+  ;; need to think about this...
+  {:footnote/text (nth (get-in poem-data [id :canto/footnotes]) idx)
+   :footnote/idx idx
+   :canto/id id})

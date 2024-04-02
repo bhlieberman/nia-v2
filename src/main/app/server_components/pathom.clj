@@ -1,15 +1,29 @@
 (ns app.server-components.pathom
   (:require
+   [app.server-components.poem :refer [footnotes-resolver
+                                       get-footnote-at-idx
+                                       poem-resolver
+                                       parens-resolver
+                                       thesis-resolver]]
    [mount.core :refer [defstate]]
    [taoensso.timbre :as log]
    [com.wsscode.pathom.connect :as pc]
    [com.wsscode.pathom.core :as p] 
    [clojure.core.async :as async]
-   
    [app.server-components.config :refer [config]]
    [app.model.mock-database :as db]))
 
-(def all-resolvers [])
+(pc/defresolver index-explorer [env _]
+  {::pc/input  #{:com.wsscode.pathom.viz.index-explorer/id}
+   ::pc/output [:com.wsscode.pathom.viz.index-explorer/index]}
+  {:com.wsscode.pathom.viz.index-explorer/index
+   (-> (get env ::pc/indexes)
+       (update ::pc/index-resolvers #(into {} (map (fn [[k v]] [k (dissoc v ::pc/resolve)])) %))
+       (update ::pc/index-mutations #(into {} (map (fn [[k v]] [k (dissoc v ::pc/mutate)])) %)))})
+
+(def all-resolvers [footnotes-resolver 
+                    get-footnote-at-idx poem-resolver 
+                    parens-resolver thesis-resolver index-explorer])
 
 (defn preprocess-parser-plugin
   "Helper to create a plugin that can view/modify the env/tx of a top-level request.
@@ -61,3 +75,5 @@
 (defstate parser
   :start (build-parser db/conn))
 
+(comment
+  (parser {} `[{([:footnote/idx 1] {:pathom/context {:canto/id 2}}) [:footnote/text]}]))

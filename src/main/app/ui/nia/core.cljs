@@ -33,38 +33,49 @@
 
 (def ui-canto-accordion (comp/factory CantoAccordion))
 
-(defsc Footnote [_this {:footnote/keys [idx text] :as _props}]
-  {:query [:footnote/idx :footnote/text :canto/id]
+(defsc Footnote [this {:footnote/keys [idx text]
+                       :canto/keys [id]
+                       :as _props}]
+  {:query [:canto/id :footnote/idx :footnote/text :canto/id]
    :ident :footnote/idx
-   :initial-state (fn [{:keys [idx text]
-                        :canto/keys [id]}] {:footnote/idx idx
-                                            :footnote/text text
-                                            :canto/id id})}
-  (dom/div
-   {}
-   (dom/div
-    (dom/section
-     (map dom/p (str/split-lines text))))))
+   :initial-state
+   (fn [{:keys [idx text] :canto/keys [id]}]
+     {:footnote/idx idx
+      :footnote/text text
+      :canto/id id})}
+  ;; ultimately I should add a :parens/level param to this query??
+  (let [load-params {:params {:pathom/context {:canto/id id}}}
+        on-click (fn [] (df/load! this [:footnote/idx idx] this load-params))]
+    (dom/div {} (dom/div {} (dom/section {}
+       (dom/button
+        :.ui.button {:onClick on-click}
+        (str "Load Footnote " idx))
+       (map-indexed (fn [i line] (dom/p {:key i} line)) (str/split-lines text)))))))
 
-(def ui-footnote (comp/factory Footnote {:keyfn :footnote/idx}))
+(def ui-footnote (comp/factory Footnote {:keyfn random-uuid}))
 
-(defsc Parentheses [_this {:parens/keys [level text footnotes]}]
+(def footnote-state [{:idx 1 :canto/id 1 :parens/level 4}
+                     {:idx 2 :canto/id 1 :parens/level 4}
+                     {:idx 1 :canto/id 2 :parens/level 2}
+                     {:idx 1 :canto/id 2 :parens/level 3}
+                     {:idx 1 :canto/id 4 :parens/level 4}
+                     {:idx 2 :canto/id 4 :parens/level 4}
+                     {:idx 3 :canto/id 4 :parens/level 4}
+                     {:idx 4 :canto/id 4 :parens/level 4}
+                     {:idx 5 :canto/id 4 :parens/level 4}])
+
+(defsc Parentheses [this {:parens/keys [level text footnotes]}]
   {:query [:parens/level :parens/text {:parens/footnotes (comp/get-query Footnote)}]
    :ident :parens/level
-   :initial-state (fn [{:keys [level text]}]
-                    {:parens/level level
-                     :parens/text text
-                     :parens/footnotes
-                     [(comp/get-initial-state
-                       Footnote {:idx 1 :text nil})
-                      (comp/get-initial-state
-                       Footnote {:idx 4 :text nil})]})}
+   :initial-state
+   (fn [{:keys [level text]}]
+     {:parens/level level
+      :parens/text text
+      :parens/footnotes
+      (mapv (partial comp/get-initial-state Footnote) footnote-state)})}
   (dom/div
    (dom/h4 "Parens level: " level)
    (dom/p "Parens text: " text)
-   ;; need to find a way to programmatically determine which footnotes to load
-   (dom/button :.ui.button {:onClick (fn [e] (df/load! _this [:footnote/idx 1] Footnote))}
-               "Load Footnote 1")
    (dom/ol
     (map ui-footnote footnotes))))
 
@@ -80,6 +91,7 @@
                      ;; later this will have conditional logic
                      ;; to determine how many parentheses each
                      ;; thesis has, but for now: simple is best 
+                     ;; do this like above with footnote initial state
                      (comp/get-initial-state ;; DON'T PUT THIS IN A VECTOR!!
                       Parentheses
                       {:level 1
