@@ -34,72 +34,97 @@
 (def ui-canto-accordion (comp/factory CantoAccordion))
 
 (defsc Footnote [this {:footnote/keys [idx text]
-                       :canto/keys [id]
-                       :as _props}]
-  {:query [:canto/id :footnote/idx :footnote/text :canto/id]
+                       :canto/keys [id]}]
+  {:query [:footnote/idx :footnote/text :canto/id]
    :ident :footnote/idx
-   :initial-state
-   (fn [{:keys [idx text] :canto/keys [id]}]
-     {:footnote/idx idx
-      :footnote/text text
-      :canto/id id})}
-  ;; ultimately I should add a :parens/level param to this query??
+   :initial-state {:footnote/idx :param/idx
+                   :footnote/text :param/text}}
   (let [load-params {:params {:pathom/context {:canto/id id}}}
         on-click (fn [] (df/load! this [:footnote/idx idx] this load-params))]
-    (dom/div {} (dom/div {} (dom/section {}
+    (dom/div
+     {}
+     (dom/div
+      {}
+      (dom/section
+       {}
        (dom/button
         :.ui.button {:onClick on-click}
         (str "Load Footnote " idx))
-       (map-indexed (fn [i line] (dom/p {:key i} line)) (str/split-lines text)))))))
+       (map-indexed 
+        (fn [i line] (dom/p {:key i} line))
+        (str/split-lines text)))))))
 
 (def ui-footnote (comp/factory Footnote {:keyfn random-uuid}))
 
-(def footnote-state [{:idx 1 :canto/id 1 :parens/level 4}
-                     {:idx 2 :canto/id 1 :parens/level 4}
-                     {:idx 1 :canto/id 2 :parens/level 2}
-                     {:idx 1 :canto/id 2 :parens/level 3}
-                     {:idx 1 :canto/id 4 :parens/level 4}
-                     {:idx 2 :canto/id 4 :parens/level 4}
-                     {:idx 3 :canto/id 4 :parens/level 4}
-                     {:idx 4 :canto/id 4 :parens/level 4}
-                     {:idx 5 :canto/id 4 :parens/level 4}])
+(def footnote-state [{:footnote/idx 1 :canto/id 1 :parens/level 4}
+                     {:footnote/idx 2 :canto/id 1 :parens/level 4}
+                     {:footnote/idx 1 :canto/id 2 :parens/level 2}
+                     {:footnote/idx 1 :canto/id 2 :parens/level 3}
+                     {:footnote/idx 1 :canto/id 4 :parens/level 4}
+                     {:footnote/idx 2 :canto/id 4 :parens/level 4}
+                     {:footnote/idx 3 :canto/id 4 :parens/level 4}
+                     {:footnote/idx 4 :canto/id 4 :parens/level 4}
+                     {:footnote/idx 5 :canto/id 4 :parens/level 4}])
 
-(defsc Parentheses [this {:parens/keys [level text footnotes]}]
+(defsc Parentheses [_ {:parens/keys [level text footnotes]}]
   {:query [:parens/level :parens/text {:parens/footnotes (comp/get-query Footnote)}]
+   ;; I think 7.2.3 of guide (Ident Generation) will come in handy here
    :ident :parens/level
    :initial-state
-   (fn [{:keys [level text]}]
-     {:parens/level level
-      :parens/text text
+   (fn [params]
+     {:parens/level (:level params)
+      :parens/text (:text params)
       :parens/footnotes
-      (mapv (partial comp/get-initial-state Footnote) footnote-state)})}
+      (filter (fn [m] (= (:parens/level m) (:level params))) footnote-state)})}
   (dom/div
    (dom/h4 "Parens level: " level)
    (dom/p "Parens text: " text)
    (dom/ol
     (map ui-footnote footnotes))))
 
-(def ui-parens (comp/factory Parentheses))
+(def ui-parens (comp/factory Parentheses {:keyfn :parens/level}))
+
+(defn footnote-flt [lvl ct]
+  (filter (fn [m]
+            (and (= (:parens/level m) lvl)
+                 (= (:canto/id m) ct))) footnote-state))
+
+(def parens-state
+  (into [] (concat
+            (for [i (range 1 6)]
+              {:thesis/id 1
+               :parens/level i
+               :text nil
+               :parens/footnotes
+               (footnote-flt i 1)})
+            (for [i (range 1 6)]
+              {:thesis/id 2
+               :parens/level i
+               :text nil
+               :parens/footnotes
+               (footnote-flt i 2)})
+            (for [i (range 1 6)]
+              {:thesis/id 4
+               :parens/level i
+               :text nil
+               :parens/footnotes
+               (footnote-flt i 4)}))))
 
 (defsc Thesis [_this {:thesis/keys [id body parentheses]}]
   {:query [:thesis/id :thesis/body {:thesis/parentheses (comp/get-query Parentheses)}]
    :ident :thesis/id ; this will be an ID like c1
-   :initial-state (fn [{:keys [id body]}]
-                    {:thesis/id id
-                     :thesis/body body
-                     :thesis/parentheses
-                     ;; later this will have conditional logic
-                     ;; to determine how many parentheses each
-                     ;; thesis has, but for now: simple is best 
-                     ;; do this like above with footnote initial state
-                     (comp/get-initial-state ;; DON'T PUT THIS IN A VECTOR!!
-                      Parentheses
-                      {:level 1
-                       :text "Hello parenthesis"})})}
+   :initial-state
+   (fn [{:keys [id body]}]
+     {:thesis/id id
+      :thesis/body body
+      :thesis/parentheses
+      (filter #(= id (:thesis/id %)) parens-state)})}
   (dom/div
    (dom/section body)
    (dom/div
-    (dom/section :.ui.accordion (ui-parens parentheses)))))
+    (dom/section
+     :.ui.accordion
+     (map ui-parens parentheses)))))
 
 (def ui-thesis (comp/factory Thesis {:keyfn :canto/thesis}))
 
@@ -112,13 +137,13 @@
                      (comp/get-initial-state
                       Thesis
                       {:id id
-                       :body "thesis body"})})}
+                       :body (str "thesis body" id)})})}
   (dom/div
    :.ui.container.segment
    (dom/h3 "Canto " id)
    (ui-canto-accordion {:idx id
                         :canto-number (str "Canto " id)
-                        :content (ui-thesis thesis)}) #_(ui-thesis thesis)))
+                        :content (ui-thesis thesis)})))
 
 (def ui-canto (comp/factory Canto))
 
@@ -128,9 +153,14 @@
            {:canto-ii (comp/get-query Canto)}
            {:canto-iv (comp/get-query Canto)}]
    :ident (fn [] [:component/id :nia/root])
-   :initial-state (fn [_] {:canto-i (comp/get-initial-state Canto {:id 1})
-                           :canto-ii (comp/get-initial-state Canto {:id 2})
-                           :canto-iv (comp/get-initial-state Canto {:id 4})})
+   :initial-state
+   (fn [_]
+     {:canto-i (comp/get-initial-state Canto {:id 1
+                                              :thesis 1})
+      :canto-ii (comp/get-initial-state Canto {:id 2
+                                               :thesis 2})
+      :canto-iv (comp/get-initial-state Canto {:id 4
+                                               :thesis 4})})
    :route-segment ["nia"]}
   (dom/div
    (dom/h1 "NIA v2")
