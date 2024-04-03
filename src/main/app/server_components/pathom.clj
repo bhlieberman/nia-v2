@@ -76,4 +76,4 @@
   :start (build-parser db/conn))
 
 (comment
-  (parser {} `[{([:footnote/idx 1] {:pathom/context {:canto/id 2}}) [:footnote/text]}]))
+  (parser {} `[{([:footnote/idx 0] {:pathom/context {:canto/id 4}}) [:footnote/text]}]))

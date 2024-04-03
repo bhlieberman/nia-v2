@@ -38,22 +38,24 @@
                                           :file "4-2"})]}
                 2 {:canto/thesis (get-static-resource {:type :canto
                                                        :canto 2})
-                   :canto/parens [] :canto/footnotes
-                   (for [m [{:parens 2} {:parens 3}]]
-                     (-> m
-                         (merge {:canto 2
-                                 :type :footnote
-                                 :file 1})
-                         get-static-resource))}
+                   :canto/parens [] 
+                   :canto/footnotes
+                   (into [] (for [m [{:parens 2} {:parens 3}]]
+                      (-> m
+                          (merge {:canto 2
+                                  :type :footnote
+                                  :file 1})
+                          get-static-resource)))}
                 4 {:canto/thesis ""
                    :canto/parens []
                    :canto/footnotes
-                   (for [i (range 1 6)
-                         :let [opts {:file i
-                                     :canto 4
-                                     :parens 4
-                                     :type :footnote}]]
-                     (get-static-resource opts))}})
+                   (into []
+                         (for [i (range 1 6)
+                          :let [opts {:file i
+                                      :canto 4
+                                      :parens 4
+                                      :type :footnote}]]
+                      (get-static-resource opts)))}})
 
 (def poem-resolver (pc/constantly-resolver
                     :canto/contents
@@ -65,14 +67,8 @@
 (pc/defresolver parens-resolver [_ {:canto/keys [id]}]
   {:canto/parens (get-in poem-data [id :canto/parens])})
 
-(pc/defresolver footnotes-resolver [_ {:canto/keys [id]}]
-  {:canto/footnotes (get-in poem-data [id :canto/footnotes])})
-
-(pc/defresolver get-footnote-at-idx [_ {:footnote/keys [idx]
-                                        :canto/keys [id]
-                                        :parens/keys [level]}]
-  {::pc/output [:footnote/idx :footnote/text :canto/id]}
-  ;; need to think about this...
-  {:footnote/text (nth (get-in poem-data [id :canto/footnotes]) idx)
-   :footnote/idx idx
-   :canto/id id})
+(pc/defresolver footnotes-resolver [_ {:canto/keys [id]
+                                       :footnote/keys [idx]}]
+  {::pc/output [:footnote/text :footnote/idx]}
+  {:footnote/text (get-in poem-data [id :canto/footnotes idx])
+   :footnote/idx idx})

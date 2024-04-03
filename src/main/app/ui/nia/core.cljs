@@ -5,6 +5,7 @@
             [com.fulcrologic.fulcro.data-fetch :as df]
             [com.fulcrologic.fulcro.dom :as dom]
             [com.fulcrologic.fulcro.react.hooks :as hooks]
+            [edn-query-language.core :as eql]
             ["semantic-ui-react" :refer [AccordionTitle AccordionContent
                                          Accordion Icon]]))
 
@@ -33,14 +34,14 @@
 
 (def ui-canto-accordion (comp/factory CantoAccordion))
 
-(defsc Footnote [this {:footnote/keys [idx text]
-                       :canto/keys [id]}]
-  {:query [:footnote/idx :footnote/text :canto/id]
+(defsc Footnote [this {:footnote/keys [idx text]}]
+  {:query [:footnote/idx :footnote/text]
    :ident :footnote/idx
    :initial-state {:footnote/idx :param/idx
                    :footnote/text :param/text}}
-  (let [load-params {:params {:pathom/context {:canto/id id}}}
-        on-click (fn [] (df/load! this [:footnote/idx idx] this load-params))]
+  (let [id (:thesis/id (comp/props (comp/get-parent this)))
+        load-params {:params {:pathom/context {:canto/id id}}}
+        on-click (fn [] (df/load! this [:footnote/idx idx] this load-params))] 
     (dom/div
      {}
      (dom/div
@@ -118,7 +119,7 @@
      {:thesis/id id
       :thesis/body body
       :thesis/parentheses
-      (filter #(= id (:thesis/id %)) parens-state)})}
+      (into [] (filter #(= id (:thesis/id %)) parens-state))})}
   (dom/div
    (dom/section body)
    (dom/div
