@@ -1,7 +1,6 @@
 (ns app.server-components.pathom
   (:require
-   [app.server-components.poem :refer [footnotes-resolver
-                                       get-footnote-at-idx
+   [app.server-components.poem :refer [footnotes-resolver 
                                        poem-resolver
                                        parens-resolver
                                        thesis-resolver]]
@@ -21,8 +20,7 @@
        (update ::pc/index-resolvers #(into {} (map (fn [[k v]] [k (dissoc v ::pc/resolve)])) %))
        (update ::pc/index-mutations #(into {} (map (fn [[k v]] [k (dissoc v ::pc/mutate)])) %)))})
 
-(def all-resolvers [footnotes-resolver 
-                    get-footnote-at-idx poem-resolver 
+(def all-resolvers [footnotes-resolver poem-resolver 
                     parens-resolver thesis-resolver index-explorer])
 
 (defn preprocess-parser-plugin
