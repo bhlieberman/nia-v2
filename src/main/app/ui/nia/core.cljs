@@ -34,7 +34,7 @@
 (def ui-canto-accordion (comp/factory CantoAccordion))
 
 (defsc Footnote [this {:footnote/keys [idx text]}]
-  {:query [:canto/id :footnote/idx :footnote/text]
+  {:query [:footnote/idx :footnote/text]
    :ident :footnote/idx
    :initial-state {:footnote/idx :param/idx
                    :footnote/text :param/text}}
@@ -53,7 +53,7 @@
         (fn [i line] (dom/p {:key i} line))
         (str/split-lines text)))))))
 
-(def ui-footnote (comp/factory Footnote {:keyfn :footnote/idx}))
+(def ui-footnote (comp/factory Footnote {:keyfn random-uuid}))
 
 (def footnote-state [{:idx 1 :canto/id 1 :level 4}
                      {:idx 2 :canto/id 1 :level 4}
@@ -65,9 +65,16 @@
                      {:idx 4 :canto/id 4 :level 4}
                      {:idx 5 :canto/id 4 :level 4}])
 
-(defsc Parentheses [_ {:parens/keys [level text footnotes]}]
-  {:query [:thesis/id :parens/level :parens/text {:parens/footnotes (comp/get-query Footnote)}]
-   ;; I think 7.2.3 of guide (Ident Generation) will come in handy here
+(defn footnote-flt [lvl ct]
+  (into [] (comp (filter (fn [m]
+                           (and (= (:level m) lvl)
+                                (= (:canto/id m) ct))))
+                 (map (partial comp/get-initial-state Footnote)))
+        footnote-state))
+
+(defsc Parentheses [_this {:parens/keys [level text footnotes]}]
+  {:query [:thesis/id :parens/level :parens/text 
+           {:parens/footnotes (comp/get-query Footnote)}]
    :ident :parens/level
    :initial-state
    (fn [{:keys [level text footnotes]}]
@@ -82,53 +89,34 @@
 
 (def ui-parens (comp/factory Parentheses {:keyfn :parens/level}))
 
-(defn footnote-flt [lvl ct]
-  (into [] (comp (filter (fn [m]
-                           (and (= (:level m) lvl)
-                                (= (:canto/id m) ct))))
-                 (map (partial comp/get-initial-state Footnote)))
-        footnote-state))
-
 (defn parens-state [id]
   (into []
         (comp
-         (filter #(= (:thesis/id %) id))
+         (filter #(= (:id %) id))
          (map (partial comp/get-initial-state Parentheses)))
-        (concat
-         (for [i (range 1 6)]
-           {:thesis/id 1
-            :level i
-            :text (str "text" i)
-            :footnotes
-            (footnote-flt i 1)})
-         (for [i (range 1 6)]
-           {:thesis/id 2
-            :level i
-            :text (str "text" i)
-            :footnotes
-            (footnote-flt i 2)})
-         (for [i (range 1 6)]
-           {:thesis/id 4
-            :level i
-            :text (str "text" i)
-            :footnotes
-            (footnote-flt i 4)}))))
+        (for [i (range 1 6)
+              thesis [1 2 4]]
+          {:id thesis
+           :level i
+           :text (str "text" i)
+           :footnotes
+           (footnote-flt i thesis)})))
 
-(defsc Thesis [_this {:thesis/keys [id body parentheses]}]
-  {:query [:thesis/id :thesis/body {:thesis/parentheses (comp/get-query Parentheses)}]
-   :ident :thesis/id ; this will be an ID like c1
+(defsc Thesis [_this {:thesis/keys [id body]}]
+  {:query [:thesis/id :thesis/body]
+   :ident :thesis/id
    :initial-state
    (fn [{:keys [id body]}]
      {:thesis/id id
       :thesis/body body
       :thesis/parentheses
-      (parens-state id)})}
+      (parens-state id)})} 
   (dom/div
    (dom/section body)
    (dom/div
     (dom/section
      :.ui.accordion
-     (map ui-parens parentheses)))))
+     (map ui-parens (parens-state id))))))
 
 (def ui-thesis (comp/factory Thesis {:keyfn :canto/thesis}))
 
@@ -139,7 +127,6 @@
    (fn [{:keys [id]}]
      {:canto/id id
       :canto/thesis
-      ;; here's where I am getting the same footnotes every time...
       (comp/get-initial-state Thesis {:id id})})}
   (dom/div
    :.ui.container.segment
@@ -166,8 +153,7 @@
                         :thesis 2})
       :canto-iv (comp/get-initial-state
                  Canto {:id 4
-                        :thesis 4})})
-   :route-segment ["nia"]}
+                        :thesis 4})})} 
   (dom/div
    (dom/h1 "NIA v2")
    (dom/div

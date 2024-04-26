@@ -1,10 +1,9 @@
 (ns app.application
   (:require
    [com.fulcrologic.fulcro.react.version18 :refer [with-react18]]
-    [com.fulcrologic.fulcro.networking.http-remote :as net]
-    [com.fulcrologic.fulcro.application :as app]
-    [com.fulcrologic.fulcro.components :as comp]
-    [edn-query-language.core :as eql]))
+   [com.fulcrologic.fulcro.networking.http-remote :as net]
+   [com.fulcrologic.fulcro.application :as app] 
+   [edn-query-language.core :as eql]))
 
 (def secured-request-middleware
   ;; The CSRF token is embedded via server_components/html.clj
@@ -28,6 +27,3 @@
                                    {:url                "/api"
                                     :request-middleware secured-request-middleware})}
                 :global-eql-transform global-eql-transform})))
-
-(comment
-  (-> SPA (::app/runtime-atom) deref ::app/indexes))
